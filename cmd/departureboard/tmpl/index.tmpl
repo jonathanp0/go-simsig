@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SimSig DepartreBoard</title>
+  </head>
+  <body>
+    <h1>SimSig DepartureBoard</h1>
+    <p>
+      <b>You are connected to SimSig simulation "{{.Area}}". Current Simulation Time: {{.Clock}}</b>
+    </p>
+    <p>
+      Available Locations:
+      <ul>
+        {{range .Locations}}
+            <li><a href="/board/{{.}}">{{.}}</a></li>
+        {{end}}
+    </p>
+  </body>
+</html>

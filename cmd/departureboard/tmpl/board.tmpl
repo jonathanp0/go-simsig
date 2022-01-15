@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SimSig Departure Board - {{.Location}}</title>
+    <style>
+        html {
+            background-color: black;
+        }
+
+        body {
+            font-family: 'Helvetica', sans-serif;
+            background-color: black;
+            white-space: nowrap;
+            color: white;
+            margin: 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            max-width: 100%;
+            width: 100%;
+        }
+
+        th,
+        td {
+            vertical-align: top;
+            padding: 5px;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #666;
+        }
+
+        #container {
+            flex-direction: column;
+            margin: auto;
+        }
+
+        #main {
+            flex-basis: 100%;
+        }
+
+        td {
+            text-align: center;
+        }
+
+        thead {
+            background-color: navy;
+        }
+
+        .clock {
+            font-size: 36pt;
+            color: yellow;
+            font-family: 'Courier New', monospace;
+        }
+
+        .plataltered {
+            text-decoration: line-through;
+        }
+
+        .platalteration {
+            color: red
+        }
+    </style>
+    <meta http-equiv="refresh" content="60">
+  </head>
+  <body>
+    <h1>SimSig DepartureBoard - {{.Location}}</h1>
+    <p><div class="clock">{{.Clock}}</div></p>
+    <p>
+    <div id="container">
+      <div id="main">
+        <table>
+     <thead>
+      <tr><th>Arrival</th><th>Departure</th><th>Headcode</th><th>Destination</th><th>Platform</th><th>Expected</th></tr>
+      </thead>
+      <tbody>
+        {{range .Stops}}
+            {{ if gt .HideAfter $.ClockRaw }}
+            <tr><td>{{.FormatArrival}}</td>
+            <td>{{.FormatDeparture}}</td>
+            <td>{{.Headcode}}</td>
+            <td>{{if ne .Origin ""}}{{.Origin}} - {{end}}{{.Destination}}</td>
+            <td>{{if and (ne .ActualPlatform "") (ne .Platform .ActualPlatform)}}<span class="plataltered">{{.Platform}}</span> <span class="platalteration">{{.ActualPlatform}}</span>{{else}} {{.Platform}} {{end}}</td>
+            <td>{{.OnTimeMessage}}</td></tr>
+            {{ end }}
+        {{end}}
+      </tbody>
+      </table>
+    </div>
+    </div>
+    </p>
+  </body>
+</html>
