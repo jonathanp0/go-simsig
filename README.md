@@ -15,6 +15,6 @@ Example of decoding a JSON Message
 - Data structures for Timetable Data in XML format
 - Utility functions for accessing the XML data
 
-## Submodule
+## Submodule gateway
 
 - Data Structures for unmarshalling Interface Gateway messages.

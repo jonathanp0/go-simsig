@@ -2,11 +2,15 @@
 
 This is a Proof of Concept for a Station Arrivals/Departure Board generated from SimSig WTT files and Interface Gateway Messages.
 
-v0.0.1 14.01.22
+## Changelog
+
+### v0.0.1 14.01.22
+
+Initial Release
 
 ## Instructions
 
-1. Launch SimSig and start a Simulation, being sure to Enable the "Interface Gateway" on the default port
+1. Launch SimSig and start a Simulation, being sure to Enable the "Interface Gateway" on the "Primary" port.
 2. Launch departureboard.exe
 3. A file dialog will appear, use this to select the timetable that is running in SimSig.
 4. A web browser will automatically be launched to access the web interface at http://localhost:8090/
