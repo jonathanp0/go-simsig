@@ -21,10 +21,8 @@ This can be done either from a "Command Prompt" or by creating a Windows Shortcu
 
 The command should have the following format: `depatureboard.exe -user <myusername> -pass <mypassword>`
 
-Please Note: This functionality has not been tested.
-
 ## Command Line Reference
-
+```
   -all
         Do not hide departed and terminated trains
   -help
@@ -39,6 +37,7 @@ Please Note: This functionality has not been tested.
         Print received train movement messages
   -wtt string
         Path to Timetable file
+```
 
 ### Customisation
 
