@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
-	"flag"
 	"fmt"
 	"html/template"
 	"math"
@@ -26,19 +25,10 @@ type LocationStopListMap map[string]*LocationStopList
 var movementQueueName = "/topic/TRAIN_MVT_ALL_TOC"
 var simsigQueueName = "/topic/SimSig"
 
-//argument flags
-var serverAddr = flag.String("server", "localhost:51515", "Simsig Interface Gateway Address")
-var wttFile = flag.String("wtt", "", "Path to Timetable file")
-var showAll = flag.Bool("all", false, "Do not hide departed and terminated trains")
-var verbose = flag.Bool("verbose", false, "Print received train movement messages")
-var user = flag.String("user", "", "SimSig License Username(optional)")
-var pass = flag.String("pass", "", "SimSig License Password(optional)")
-var helpFlag = flag.Bool("help", false, "Print help text")
-var stop = make(chan bool)
-
 //global variables
 var locations []string
 var stopsAtLocations map[string]*LocationStopList
+var stop = make(chan bool)
 
 func main() {
 
@@ -58,9 +48,9 @@ func processLocationMessage(m *gateway.TrainLocation, locations LocationStopList
 		return
 	}
 
-	if *verbose {
+	/*if *verbose {
 		println(prettyPrint(*m))
-	}
+	}*/
 
 	//Search the location for this headcode and update
 	for i, _ := range stops.Stops {
@@ -81,9 +71,9 @@ func processLocationMessage(m *gateway.TrainLocation, locations LocationStopList
 //Process train_delay gateway message
 func processDelayMessage(m *gateway.TrainDelay, locations LocationStopListMap) {
 
-	if *verbose {
+	/*if *verbose {
 		println(prettyPrint(*m))
-	}
+	}*/
 
 	for _, location := range locations {
 		for i, _ := range location.Stops {
@@ -368,9 +358,9 @@ func (a LocationStop) OnTimeMessage() string {
 
 func (a LocationStop) HideAfter() int {
 
-	if *showAll {
+	/*if *showAll {
 		return math.MaxInt32
-	}
+	}*/
 
 	if a.Departed {
 		return 0
