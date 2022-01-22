@@ -69,4 +69,4 @@ FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TOR
 
  ## Attribution
 
-Bulletin board icons created by catkuro - [Flaticon](https://www.flaticon.com/free-icons/bulletin-board
+Bulletin board icons created by Freepik - [Flaticon](https://www.flaticon.com/free-icons/flight-information)
