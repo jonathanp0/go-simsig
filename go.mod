@@ -9,5 +9,6 @@ require (
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/sqweek/dialog v0.0.0-20211002065838-9a201b55ab91
+	github.com/vmihailenco/msgpack/v5 v5.3.5
 	gopkg.in/Knetic/govaluate.v3 v3.0.0 // indirect
 )
