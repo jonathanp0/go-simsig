@@ -10,11 +10,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 
 	"github.com/go-stomp/stomp/v3"
-	"github.com/pkg/browser"
-	"github.com/sqweek/dialog"
 
 	"github.com/jonathanp0/go-simsig/gateway"
 	"github.com/jonathanp0/go-simsig/wttxml"
@@ -37,71 +36,15 @@ var pass = flag.String("pass", "", "SimSig License Password(optional)")
 var helpFlag = flag.Bool("help", false, "Print help text")
 var stop = make(chan bool)
 
+//global variables
+var locations []string
+var stopsAtLocations map[string]*LocationStopList
+
 func main() {
-	flag.Parse()
-	if *helpFlag {
-		fmt.Fprintf(os.Stderr, "Usage of %s\n", os.Args[0])
-		flag.PrintDefaults()
-		os.Exit(1)
-	}
 
-	//Open File Dialog for WTT
-	var filename string
-	if *wttFile != "" {
-		filename = *wttFile
-	} else {
-		var err error
-		filename, err = dialog.File().Title("Select Active SimSig WTT").SetStartDir("C:\\Users\\Public\\Documents\\SimSig\\Timetables").Filter("SimSig WTT(*.WTT)", "wtt").Load()
-		if err != nil {
-			println("No WTT specified on command line or in dialog")
-			os.Exit(1)
-		}
-	}
+	runtime.LockOSThread()
+	runWindowsUI()
 
-	println("Reading WTT File ", filename, "...")
-
-	//Read WTT
-	data, err := wttxml.ReadSavedTimetable(filename)
-	if err != nil {
-		println("Error reading WTT: " + err.Error())
-		os.Exit(1)
-	}
-
-	//Build stop list from WTT
-	var wtt wttxml.SimSigTimetable
-	err = xml.Unmarshal(data, &wtt)
-	if err != nil {
-		println("WTT Parsing Error: " + err.Error())
-		os.Exit(1)
-	}
-
-	locations := buildSortedLocationList(wtt.Timetables.Timetable)
-
-	stopsAtLocations := buildLocationStopList(locations, wtt.Timetables.Timetable)
-
-	for _, locStops := range stopsAtLocations {
-		sort.Sort(locStops)
-	}
-
-	//Iniate STOMP Connection
-
-	subscribed := make(chan bool)
-
-	//Global state variables
-	var currentClock gateway.ClockMsg
-
-	println("Connecting to SimSig at ", *serverAddr, "...")
-	go recvMessages(&currentClock, stopsAtLocations, subscribed)
-
-	// wait until we know the receiver has subscribed
-	<-subscribed
-
-	println("Connected. Launched web interface att http://localhost:8090/")
-	go webInterface(locations, stopsAtLocations, &currentClock)
-	browser.OpenURL("http://localhost:8090/")
-
-	//run indefinitely
-	<-stop
 }
 
 //Gateway Message Processing
@@ -153,8 +96,27 @@ func processDelayMessage(m *gateway.TrainDelay, locations LocationStopListMap) {
 	}
 }
 
+func gatewayConnection(user string, password string, address string) {
+	//Iniate STOMP Connection
+	subscribed := make(chan bool)
+
+	//Global state variables
+	var currentClock gateway.ClockMsg
+
+	go recvMessages(&currentClock, stopsAtLocations, subscribed, user, password, address)
+
+	// wait until we know the receiver has subscribed
+	<-subscribed
+
+	go webInterface(locations, stopsAtLocations, &currentClock)
+	webInterfaceReady()
+
+	//run indefinitely
+	<-stop
+}
+
 //Main communication thread for Interface Gateway
-func recvMessages(clock *gateway.ClockMsg, locations LocationStopListMap, subscribed chan bool) {
+func recvMessages(clock *gateway.ClockMsg, locations LocationStopListMap, subscribed chan bool, user string, pass string, serverAddr string) {
 	defer func() {
 		stop <- true
 	}()
@@ -162,25 +124,25 @@ func recvMessages(clock *gateway.ClockMsg, locations LocationStopListMap, subscr
 	//login credentials
 	var options []func(*stomp.Conn) error = []func(*stomp.Conn) error{}
 
-	if *user != "" {
-		options = append(options, stomp.ConnOpt.Login(*user, *pass))
+	if user != "" {
+		options = append(options, stomp.ConnOpt.Login(user, pass))
 	}
 
-	conn, err := stomp.Dial("tcp", *serverAddr, options...)
+	conn, err := stomp.Dial("tcp", serverAddr, options...)
 
 	if err != nil {
-		println("cannot connect to server", err.Error())
+		updateStatus("cannot connect to server: " + err.Error())
 		return
 	}
 
 	subMvt, err := conn.Subscribe(movementQueueName, stomp.AckAuto)
 	if err != nil {
-		println("cannot subscribe to", movementQueueName, err.Error())
+		updateStatus("cannot subscribe to " + movementQueueName + ": " + err.Error())
 		return
 	}
 	subSimsig, err := conn.Subscribe(simsigQueueName, stomp.AckAuto)
 	if err != nil {
-		println("cannot subscribe to", simsigQueueName, err.Error())
+		updateStatus("cannot subscribe to " + simsigQueueName + ": " + err.Error())
 		return
 	}
 	conn.Send("/topic/SimSig", "text/plain", []byte("{\"idrequest\":{}}"))
@@ -193,7 +155,7 @@ func recvMessages(clock *gateway.ClockMsg, locations LocationStopListMap, subscr
 			var decodedMsg gateway.TrainMovementMessage
 			err := json.Unmarshal(msg.Body, &decodedMsg)
 			if err != nil {
-				println("Error parsing Train Movement message:", err.Error())
+				showError("Error parsing Train Movement message: " + err.Error())
 				continue
 			}
 			if decodedMsg.TrainLocation != nil {
@@ -205,7 +167,7 @@ func recvMessages(clock *gateway.ClockMsg, locations LocationStopListMap, subscr
 			var decodedMsg gateway.SimSigMessage
 			err := json.Unmarshal(msg.Body, &decodedMsg)
 			if err != nil {
-				println("Error parsing SimSig message:", err.Error())
+				showError("Error parsing SimSig message: " + err.Error())
 				continue
 			}
 			if decodedMsg.Clock != nil {
@@ -253,10 +215,13 @@ func serveDepartureBoard(currentClock *gateway.ClockMsg, location string, stopLi
 	data.Location = location
 	data.Stops = stopList.Stops
 
-	tmpl := template.Must(template.ParseFiles(localTemplatePath("tmpl/board.tmpl")))
-	err := tmpl.Execute(w, data)
+	tmpl, err := template.ParseFiles(localTemplatePath("tmpl/board.tmpl"))
 	if err != nil {
-		println("board.tmpl error: " + err.Error())
+		showError("board.tmpl error: " + err.Error())
+	}
+	err = tmpl.Execute(w, data)
+	if err != nil {
+		showError("board.tmpl error: " + err.Error())
 	}
 }
 
@@ -284,10 +249,13 @@ func webInterface(locations []string, locationStops map[string]*LocationStopList
 		data.Area = currentClock.AreaID
 		data.Locations = locations
 
-		tmpl := template.Must(template.ParseFiles(localTemplatePath("tmpl/index.tmpl")))
-		err := tmpl.Execute(w, data)
+		tmpl, err := template.ParseFiles(localTemplatePath("tmpl/index.tmpl"))
 		if err != nil {
-			println("index.tmpl error: " + err.Error())
+			showError("index.tmpl error: " + err.Error())
+		}
+		err = tmpl.Execute(w, data)
+		if err != nil {
+			showError("index.tmpl error: " + err.Error())
 		}
 	})
 
@@ -295,6 +263,32 @@ func webInterface(locations []string, locationStops map[string]*LocationStopList
 }
 
 // Timetable Parsing
+func loadTimetable(filename string) string {
+
+	//Read WTT
+	data, err := wttxml.ReadSavedTimetable(filename)
+	if err != nil {
+		return ("Error reading WTT: " + err.Error())
+	}
+
+	//Build stop list from WTT
+	var wtt wttxml.SimSigTimetable
+	err = xml.Unmarshal(data, &wtt)
+	if err != nil {
+		return ("WTT Parsing Error: " + err.Error())
+	}
+
+	locations = buildSortedLocationList(wtt.Timetables.Timetable)
+
+	stopsAtLocations = buildLocationStopList(locations, wtt.Timetables.Timetable)
+
+	for _, locStops := range stopsAtLocations {
+		sort.Sort(locStops)
+	}
+
+	return ""
+}
+
 func buildSortedLocationList(timetables []wttxml.Timetable) []string {
 
 	locations := map[string]bool{}
