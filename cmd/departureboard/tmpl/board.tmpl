@@ -80,7 +80,7 @@
       <div id="main">
         <table>
      <thead>
-      <tr><th>Arrival</th><th>Departure</th><th>Headcode</th><th>Destination</th><th>Platform</th><th>Expected</th></tr>
+      <tr><th>Arrival</th><th>Departure</th><th>Headcode</th><th>Origin</th><th>Destination</th><th>Platform</th><th>Expected</th></tr>
       </thead>
       <tbody>
         {{range .Stops}}
@@ -88,7 +88,8 @@
             <tr><td>{{.FormatArrival}}</td>
             <td>{{.FormatDeparture}}</td>
             <td>{{.Headcode}}</td>
-            <td>{{if ne .Origin ""}}<span class="origin">{{.Origin}} - </span>{{end}}{{.Destination}}</td>
+            <td>{{if ne .Origin ""}}<span class="origin">{{.Origin}}</span>{{end}}</td>
+            <td>{{.Destination}}</td>
             <td>{{if and (ne .ActualPlatform "") (ne .Platform .ActualPlatform)}}<span class="plataltered">{{.Platform}}</span> <span class="platalteration">{{.ActualPlatform}}</span>{{else}} {{.Platform}} {{end}}</td>
             <td>{{.OnTimeMessage}}</td></tr>
             {{ end }}

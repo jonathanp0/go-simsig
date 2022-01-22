@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -14,12 +15,18 @@ import (
 	"strings"
 
 	"github.com/go-stomp/stomp/v3"
+	"github.com/vmihailenco/msgpack/v5"
 
 	"github.com/jonathanp0/go-simsig/gateway"
 	"github.com/jonathanp0/go-simsig/wttxml"
 )
 
 // type definitions
+type Location struct {
+	Name string
+	Code string
+}
+
 type LocationStopListMap map[string]*LocationStopList
 
 // constants
@@ -27,7 +34,7 @@ var movementQueueName = "/topic/TRAIN_MVT_ALL_TOC"
 var simsigQueueName = "/topic/SimSig"
 
 //global variables
-var locations []string
+var locations []Location
 var stopsAtLocations map[string]*LocationStopList
 var stop = make(chan bool)
 var currentClock gateway.ClockMsg
@@ -222,17 +229,17 @@ func serveDepartureBoardForLocation(currentClock *gateway.ClockMsg, location str
 }
 
 //web interface main loop
-func webInterface(locations []string, locationStops map[string]*LocationStopList, currentClock *gateway.ClockMsg) {
+func webInterface(locations []Location, locationStops map[string]*LocationStopList, currentClock *gateway.ClockMsg) {
 
-	for _, name := range locations {
-		http.HandleFunc("/board/"+name, serveDepartureBoardForLocation(currentClock, name, locationStops[name]))
+	for _, loc := range locations {
+		http.HandleFunc("/board/"+loc.Code, serveDepartureBoardForLocation(currentClock, loc.Name, locationStops[loc.Code]))
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var data struct {
 			Clock     string
 			Area      string
-			Locations []string
+			Locations []Location
 		}
 		data.Clock = formatTime(currentClock.Clock)
 		data.Area = currentClock.AreaID
@@ -267,21 +274,37 @@ func loadTimetable(filename string) string {
 		return ("WTT Parsing Error: " + err.Error())
 	}
 
-	locations = buildSortedLocationList(wtt.Timetables.Timetable)
+	locationCodes := buildSortedLocationList(wtt.Timetables.Timetable)
 
-	stopsAtLocations = buildLocationStopList(locations, wtt.Timetables.Timetable)
+	stopsAtLocations = buildLocationStopList(locationCodes, wtt.Timetables.Timetable)
 
+	//Sort list by time and prune location list
 	n := 0
 	for name, locStops := range stopsAtLocations {
 		sort.Sort(locStops)
 		if locStops.Len() > 0 {
-			locations[n] = name
+			locationCodes[n] = name
 			n++
 		}
 	}
 
-	locations = locations[:n]
-	sort.Strings(locations)
+	locationCodes = locationCodes[:n]
+	sort.Strings(locationCodes)
+
+	locations = make([]Location, 0, len(locationCodes))
+
+	//Attempt TIPLOC Lookups
+	tiplocs := readTIPLOCs()
+
+	for i, _ := range locationCodes {
+		if desc, ok := tiplocs[locationCodes[i]]; ok {
+			locations = append(locations, Location{strings.Title(strings.ToLower(desc)), locationCodes[i]})
+		} else {
+			locations = append(locations, Location{locationCodes[i], locationCodes[i]})
+		}
+	}
+
+	sort.Slice(locations, func(i, j int) bool { return locations[i].Name < locations[j].Name })
 
 	return ""
 }
@@ -403,6 +426,8 @@ func buildLocationStopList(locations []string, timetables []wttxml.Timetable) ma
 		locationStops[loc] = &LocationStopList{}
 	}
 
+	tiplocs := readTIPLOCs()
+
 	for _, timetable := range timetables {
 
 		for i, _ := range timetable.Trips.Trip {
@@ -411,7 +436,15 @@ func buildLocationStopList(locations []string, timetables []wttxml.Timetable) ma
 			if !wttxml.SBool(trip.IsPassTime) && !(wttxml.SBool(trip.SetDownOnly) && trip.ArrTime == 0) && !(trip.DepPassTime == 0 && trip.ArrTime == 0) {
 				stop := LocationStop{timetable.ID, timetable.OriginName, timetable.DestinationName, nil, nil, trip.Platform, false, false, false, "", 0}
 
-				if (stop.Origin == "" && stop.Destination == "") || (isTIPLOC(stop.Origin) && isTIPLOC(stop.Destination)) {
+				if isTIPLOC(stop.Origin) {
+					stop.Origin = strings.Title(strings.ToLower(tiplocs[stop.Origin]))
+				}
+				if isTIPLOC(stop.Destination) {
+					stop.Destination = strings.Title(strings.ToLower(tiplocs[stop.Destination]))
+				}
+
+				if stop.Destination == "" {
+					stop.Origin = ""
 					stop.Destination = timetable.Description
 				}
 
@@ -438,4 +471,25 @@ func buildLocationStopList(locations []string, timetables []wttxml.Timetable) ma
 	}
 
 	return locationStops
+}
+
+//TIPLOC
+func readTIPLOCs() map[string]string {
+	tiplocs := make(map[string]string)
+
+	f, err := os.Open(localTemplatePath("tiploc.bin"))
+	if err != nil {
+		//println(err.Error())
+		return tiplocs
+	}
+	defer f.Close()
+
+	buf := bufio.NewReader(f)
+	dec := msgpack.NewDecoder(buf)
+
+	err = dec.Decode(&tiplocs)
+	if err != nil {
+		//println(err.Error())
+	}
+	return tiplocs
 }
