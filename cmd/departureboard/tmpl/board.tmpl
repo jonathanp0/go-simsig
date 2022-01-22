@@ -61,12 +61,16 @@
         .platalteration {
             color: red
         }
+
+        a {
+          color: grey;
+        }
     </style>
     <meta http-equiv="refresh" content="15">
   </head>
   <body>
     <h1>SimSig DepartureBoard - {{.Location}}</h1>
-    <p><div class="clock">{{.Clock}}</div></p>
+    <p><div class="clock">{{.Clock}}</div><a href="/"> Back to Location List</a></p>
     <p>
     <div id="container">
       <div id="main">
