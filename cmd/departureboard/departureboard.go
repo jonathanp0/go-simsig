@@ -29,6 +29,7 @@ var simsigQueueName = "/topic/SimSig"
 var locations []string
 var stopsAtLocations map[string]*LocationStopList
 var stop = make(chan bool)
+var currentClock gateway.ClockMsg
 
 func main() {
 
@@ -89,9 +90,6 @@ func processDelayMessage(m *gateway.TrainDelay, locations LocationStopListMap) {
 func gatewayConnection(user string, password string, address string) {
 	//Iniate STOMP Connection
 	subscribed := make(chan bool)
-
-	//Global state variables
-	var currentClock gateway.ClockMsg
 
 	go recvMessages(&currentClock, stopsAtLocations, subscribed, user, password, address)
 
@@ -272,9 +270,17 @@ func loadTimetable(filename string) string {
 
 	stopsAtLocations = buildLocationStopList(locations, wtt.Timetables.Timetable)
 
-	for _, locStops := range stopsAtLocations {
+	n := 0
+	for name, locStops := range stopsAtLocations {
 		sort.Sort(locStops)
+		if locStops.Len() > 0 {
+			locations[n] = name
+			n++
+		}
 	}
+
+	locations = locations[:n]
+	sort.Strings(locations)
 
 	return ""
 }
@@ -339,9 +345,12 @@ func (a LocationStop) FormatDeparture() string {
 	return formatOptionalTime(a.Departure)
 }
 
+const cancelledAfter uint = 3
+const hiddenAfter int = 10
+
 func (a LocationStop) OnTimeMessage() string {
-	if !a.Updated {
-		return "Unknown"
+	if !a.Updated && currentClock.Clock > (a.Time()+(cancelledAfter*60)) {
+		return "Cancelled"
 	} else if a.Departed {
 		return "Departed"
 	} else if a.Arrived {
@@ -364,10 +373,8 @@ func (a LocationStop) HideAfter() int {
 
 	if a.Departed {
 		return 0
-	} else if !a.Updated {
-		return int(a.Time()) + (10 * 60)
 	} else {
-		result := int(a.Time()) + (10 * 60)
+		result := int(a.Time()) + (hiddenAfter * 60)
 		if a.DelaySeconds > 0 {
 			result += a.DelaySeconds
 		}
