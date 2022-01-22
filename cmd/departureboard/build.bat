@@ -1,0 +1,1 @@
+go build -ldflags "-H=windowsgui -s -w" github.com/jonathanp0/go-simsig/cmd/departureboard
