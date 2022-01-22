@@ -65,6 +65,10 @@
         a {
           color: grey;
         }
+
+        .origin {
+          color: grey;
+        }
     </style>
     <meta http-equiv="refresh" content="15">
   </head>
@@ -84,7 +88,7 @@
             <tr><td>{{.FormatArrival}}</td>
             <td>{{.FormatDeparture}}</td>
             <td>{{.Headcode}}</td>
-            <td>{{if ne .Origin ""}}{{.Origin}} - {{end}}{{.Destination}}</td>
+            <td>{{if ne .Origin ""}}<span class="origin">{{.Origin}} - </span>{{end}}{{.Destination}}</td>
             <td>{{if and (ne .ActualPlatform "") (ne .Platform .ActualPlatform)}}<span class="plataltered">{{.Platform}}</span> <span class="platalteration">{{.ActualPlatform}}</span>{{else}} {{.Platform}} {{end}}</td>
             <td>{{.OnTimeMessage}}</td></tr>
             {{ end }}
