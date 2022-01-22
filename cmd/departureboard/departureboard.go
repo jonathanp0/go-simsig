@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strings"
 
 	"github.com/go-stomp/stomp/v3"
 
@@ -389,6 +390,10 @@ func prettyPrint(i interface{}) string {
 	return string(s)
 }
 
+func isTIPLOC(id string) bool {
+	return (len(id) <= 7) && (strings.ToUpper(id) == id)
+}
+
 //Build the list of stops for every location
 func buildLocationStopList(locations []string, timetables []wttxml.Timetable) map[string]*LocationStopList {
 
@@ -406,7 +411,7 @@ func buildLocationStopList(locations []string, timetables []wttxml.Timetable) ma
 			if !wttxml.SBool(trip.IsPassTime) && !(wttxml.SBool(trip.SetDownOnly) && trip.ArrTime == 0) && !(trip.DepPassTime == 0 && trip.ArrTime == 0) {
 				stop := LocationStop{timetable.ID, timetable.OriginName, timetable.DestinationName, nil, nil, trip.Platform, false, false, false, "", 0}
 
-				if stop.Origin == "" && stop.Destination == "" {
+				if (stop.Origin == "" && stop.Destination == "") || (isTIPLOC(stop.Origin) && isTIPLOC(stop.Destination)) {
 					stop.Destination = timetable.Description
 				}
 
