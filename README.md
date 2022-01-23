@@ -10,6 +10,10 @@ A tool which uses WTT data and the Interface Gateway to generate a departure boa
 
 Example of decoding a JSON Message
 
+## Command corpusconvert
+
+A tool which read Network Rail CORPUS Reference Data in JSON Format and writes out a list of TIPLOC/Location Description Pairs in MsgPack format
+
 ## Submodule wttxml
 
 - Data structures for Timetable Data in XML format
