@@ -4,6 +4,20 @@ This is a Proof of Concept for a Station Arrivals/Departure Board generated from
 
 ## Changelog
 
+### v0.2.0 23.01.22
+
+- Command Line Interface replaced with Graphical Interface
+- Convert TIPLOC Names on Location List and if necessary in Origin/Destination
+
+#### Minor Changes
+- Add Application Icon
+- Replace "Unknown" with "On Time" and "Cancelled"
+- Decrease refresh time from 60s to 15s
+- Update Clock on Location List Screen
+- Add Return Link to Board
+- Improve Location List Styling
+- Seperate Origin and Destination
+
 ### v0.0.1 14.01.22
 
 Initial Release
@@ -12,40 +26,14 @@ Initial Release
 
 1. Launch SimSig and start a Simulation, being sure to Enable the "Interface Gateway" on the "Primary" port.
 2. Launch departureboard.exe
-3. A file dialog will appear, use this to select the timetable that is running in SimSig.
-4. A web browser will automatically be launched to access the web interface at http://localhost:8090/
-
-If the software does not function as expected, please consult the error messages printed to the 
-console window. If the application exits immediately, it will be necessary to run the application from a "Command Prompt" in order to see these messages.
-
-### Licensed Simulations
-
-In case you are running a licensed simulation, your SimSig username and password must be supplied on the command line.
-This can be done either from a "Command Prompt" or by creating a Windows Shortcut.
-
-The command should have the following format: `depatureboard.exe -user <myusername> -pass <mypassword>`
-
-## Command Line Reference
-```
-  -all
-        Do not hide departed and terminated trains
-  -help
-        Print help text
-  -pass string
-        SimSig License Password(optional)
-  -server string
-        Simsig Interface Gateway Address (default "localhost:51515")
-  -user string
-        SimSig License Username(optional)
-  -verbose
-        Print received train movement messages
-  -wtt string
-        Path to Timetable file
-```
+3. Enter the Simsig Username and Password if running a licensed simulation
+4. Click "Choose Timetable" and select the timetable that is in use in SimSig
+5. Click "Connect" and wait whilst a connection is established to SimSig
+4. Click the "Open Departure Board" link
 
 ### Customisation
 
-The template files for the location list and depature board are loaded from tmpl\index.tmpl and board.tmpl respectively.
+The template files for the location list and depature board are loaded from `tmpl\index.tmpl` and `tmpl\board.tmpl` respectively.
 The visual appearance of the web interface can be customised by modifying these files.
 
 ## Author
@@ -70,3 +58,5 @@ FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TOR
  ## Attribution
 
 Bulletin board icons created by Freepik - [Flaticon](https://www.flaticon.com/free-icons/flight-information)
+
+Extracts from the [Network Rail Reference Data](https://www.networkrail.co.uk/who-we-are/transparency-and-ethics/transparency/open-data-feeds/) are included under the [Open Government License](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/)
