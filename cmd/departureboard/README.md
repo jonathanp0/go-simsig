@@ -4,6 +4,10 @@ This is a Proof of Concept for a Station Arrivals/Departure Board generated from
 
 ## Changelog
 
+### v0.2.1 28.01.22
+
+- Do not show train as cancelled at future stops if it is reported as passing a timing point but there was no delay report
+
 ### v0.2.0 23.01.22
 
 - Command Line Interface replaced with Graphical Interface
