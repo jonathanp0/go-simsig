@@ -61,6 +61,9 @@ func processLocationMessage(m *gateway.TrainLocation, locations LocationStopList
 		println(prettyPrint(*m))
 	}*/
 
+	needsUpdate := false
+	var stopTime uint
+
 	//Search the location for this headcode and update
 	for i, _ := range stops.Stops {
 		stop := &stops.Stops[i]
@@ -71,7 +74,22 @@ func processLocationMessage(m *gateway.TrainLocation, locations LocationStopList
 				stop.Departed = true
 			}
 			stop.ActualPlatform = m.Platform
-			stop.Updated = true
+			if !stop.Updated {
+				needsUpdate = true
+				stopTime = stop.Time()
+			}
+		}
+	}
+
+	// Update all future stops to show this train is in the sim
+	if needsUpdate {
+		for _, location := range locations {
+			for i, _ := range location.Stops {
+				stop := &location.Stops[i]
+				if (stop.Headcode == m.Headcode) && (stop.Time() > stopTime) {
+					stop.Updated = true
+				}
+			}
 		}
 	}
 
